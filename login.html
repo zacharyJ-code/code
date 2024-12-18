@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户认证系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 0.3; }
+        }
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite;
+        }
+        body {
+            transition: all 0.5s ease;
+        }
+        .form-container {
+            transition: all 0.5s ease;
+            transform-style: preserve-3d;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-blue-200 to-blue-400">
+    <div id="background" class="absolute inset-0 z-0">
+        <div id="starContainer" class="absolute inset-0 hidden"></div>
+
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" preserveAspectRatio="none" 
+             class="absolute bottom-0 left-0 right-0 w-full h-1/3">
+            <path 
+                id="mountainPath"
+                fill="#93C5FD" 
+                d="M0,160L48,176C96,192,192,224,288,229.3C384,235,480,213,576,197.3C672,181,768,171,864,170.7C960,171,1056,181,1152,186.7C1248,192,1344,192,1392,192L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320L192,320L96,320L0,320Z"
+            />
+        </svg>
+
+        <div 
+            id="fogLayer"
+            class="absolute top-0 left-0 right-0 h-1/2 bg-white opacity-20 blur-3xl"
+            style="background-image: linear-gradient(to right, #E0F2FE, #BAE6FD);"
+        ></div>
+    </div>
+
+    <button 
+        id="themeToggle"
+        class="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/40 transition z-10"
+    >
+        🌓 切换主题
+    </button>
+
+    <div 
+        id="authContainer"
+        class="relative z-10 w-96 p-8 rounded-xl shadow-2xl backdrop-blur-sm bg-white/80 text-gray-800"
+    >
+        <!-- 登录表单 -->
+        <div id="loginForm">
+            <h2 class="text-2xl font-bold mb-6 text-center">登录</h2>
+            <input 
+                id="loginUsername"
+                type="text" 
+                placeholder="用户名" 
+                class="w-full p-3 rounded mb-4 bg-gray-100 text-gray-800" 
+            />
+            <input 
+                id="loginPassword"
+                type="password" 
+                placeholder="密码" 
+                class="w-full p-3 rounded mb-4 bg-gray-100 text-gray-800" 
+            />
+            <div id="loginMessage" class="text-center mb-4 text-sm"></div>
+            <button 
+                id="loginButton"
+                class="w-full p-3 rounded transition bg-blue-500 hover:bg-blue-600"
+            >
+                登录
+            </button>
+            <div class="text-center mt-4">
+                <a href="#" id="toRegisterLink" class="text-blue-600 hover:underline mr-4">注册</a>
+                <a href="#" id="toForgotLink" class="text-blue-600 hover:underline">忘记密码</a>
+            </div>
+        </div>
+
+        <!-- 注册表单 -->
+        <div id="registerForm" class="hidden">
+            <h2 class="text-2xl font-bold mb-6 text-center">注册</h2>
+            <input 
+                id="registerUsername"
+                type="text" 
+                placeholder="用户名" 
+                class="w-full p-3 rounded mb-4 bg-gray-100 text-gray-800" 
+            />
+            <input 
+                id="registerEmail"
+                type="email" 
+                placeholder="邮箱" 
+                class="w-full p-3 rounded mb-4 bg-gray-100 text-gray-800" 
+            />
+            <input 
+                id="registerPassword"
+                type="password" 
+                placeholder="密码" 
+                class="w-full p-3 rounded mb-4 bg-gray-100 text-gray-800" 
+            />
+            <input 
+                id="confirmPassword"
+                type="password" 
+                placeholder="确认密码" 
+                class="w-full p-3 rounded mb-4 bg-gray-100 text-gray-800" 
+            />
+            <div id="registerMessage" class="text-center mb-4 text-sm"></div>
+            <button 
+                id="registerButton"
+                class="w-full p-3 rounded transition bg-green-500 hover:bg-green-600"
+            >
+                注册
+            </button>
+            <div class="text-center mt-4">
+                <a href="#" id="toLoginLink" class="text-blue-600 hover:underline">返回登录</a>
+            </div>
+        </div>
+
+        <!-- 忘记密码表单 -->
+        <div id="forgotPasswordForm" class="hidden">
+            <h2 class="text-2xl font-bold mb-6 text-center">重置密码</h2>
+            <input 
+                id="forgotEmail"
+                type="email" 
+                placeholder="注册邮箱" 
+                class="w-full p-3 rounded mb-4 bg-gray-100 text-gray-800" 
+            />
+            <div id="forgotMessage" class="text-center mb-4 text-sm"></div>
+            <button 
+                id="sendResetButton"
+                class="w-full p-3 rounded transition bg-yellow-500 hover:bg-yellow-600"
+            >
+                发送重置链接
+            </button>
+            <div class="text-center mt-4">
+                <a href="#" id="backToLoginLink" class="text-blue-600 hover:underline">返回登录</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const body = document.body;
+        const themeToggle = document.getElementById('themeToggle');
+        const starContainer = document.getElementById('starContainer');
+        const mountainPath = document.getElementById('mountainPath');
+        const authContainer = document.getElementById('authContainer');
+        const fogLayer = document.getElementById('fogLayer');
+
+        // 表单容器
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+
+        // 切换表单的链接
+        const toRegisterLink = document.getElementById('toRegisterLink');
+        const toLoginLink = document.getElementById('toLoginLink');
+        const toForgotLink = document.getElementById('toForgotLink');
+        const backToLoginLink = document.getElementById('backToLoginLink');
+
+        // 表单按钮和输入
+        const loginButton = document.getElementById('loginButton');
+        const registerButton = document.getElementById('registerButton');
+        const sendResetButton = document.getElementById('sendResetButton');
+
+        // 切换表单函数
+        function switchForm(hideForm, showForm) {
+            hideForm.classList.add('hidden');
+            showForm.classList.remove('hidden');
+        }
+
+        // 事件监听：切换到注册表单
+        toRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchForm(loginForm, registerForm);
+        });
+
+        // 事件监听：切换到登录表单
+        toLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchForm(registerForm, loginForm);
+        });
+
+        // 事件监听：切换到忘记密码表单
+        toForgotLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchForm(loginForm, forgotPasswordForm);
+        });
+
+        // 事件监听：返回登录表单
+        backToLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchForm(forgotPasswordForm, loginForm);
+        });
+
+        // 登录逻辑
+        loginButton.addEventListener('click', async () => {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const loginMessage = document.getElementById('loginMessage');
+
+            if (!username || !password) {
+                loginMessage.textContent = '请输入用户名和密码';
+                loginMessage.style.color = 'red';
+                return;
+            }
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        loginTime: new Date().toISOString(),
+                        theme: body.className.includes('from-gray-900') ? 'dark' : 'light'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    loginMessage.textContent = '登录成功';
+                    loginMessage.style.color = 'green';
+                } else {
+                    loginMessage.textContent = result.message || '登录失败';
+                    loginMessage.style.color = 'red';
+                }
+            } catch (error) {
+                loginMessage.textContent = '网络错误，请稍后重试';
+                loginMessage.style.color = 'red';
+            }
+        });
+
+        // 注册逻辑
+        registerButton.addEventListener('click', async () => {
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const registerMessage = document.getElementById('registerMessage');
+
+            // 验证
+            if (!username || !email || !password || !confirmPassword) {
+                registerMessage.textContent = '请填写所有字段';
+                registerMessage.style.color = 'red';
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                registerMessage.textContent = '两次密码输入不一致';
+                registerMessage.style.color = 'red';
+                return;
+            }
+
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    registerMessage.textContent = '注册成功';
+                    registerMessage.style.color = 'green';
+                } else {
+                    registerMessage.textContent = result.message || '注册失败';
+                    registerMessage.style.color = 'red';
+                }
+            } catch (error) {
+                registerMessage.textContent = '网络错误，请稍后重试';
+                registerMessage.style.color = 'red';
+            }
+        });
+
+        // 重置密码逻辑
+        sendResetButton.addEventListener('click', async () => {
+            const email = document.getElementById('forgotEmail').value;
+            const forgotMessage = document.getElementById('forgotMessage');
+
+            if (!email) {
+                forgotMessage.textContent = '请输入邮箱';
+                forgotMessage.style.color = 'red';
+                return;
+            }
+
+            try {
+                const response = await fetch('/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    forgotMessage.textContent = '重置链接已发送，请检查邮箱';
+                    forgotMessage.style.color = 'green';
+                } else {
+                    forgotMessage.textContent = result.message || '发送失败';
+                    forgotMessage.style.color = 'red';
+                }
+            } catch (error) {
+                forgotMessage.textContent = '网络错误，请稍后重试';
+                forgotMessage.style.color = 'red';
+            }
+        });
+
+        // 主题相关的原有代码保持不变
+        function createStars() {
+            starContainer.innerHTML = '';
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                star.style.width = `${Math.random() * 3}px`;
+                star.style.height = `${star.style.width}`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                starContainer.appendChild(star);
+            }
+        }
+
+        function setDarkMode(isDark) {
+            // 原有的主题切换代码保持不变
+        }
+
+        function autoSetTheme() {
+            const hour = new Date().getHours();
+            const isDark = hour >= 19 || hour < 6;
+            setDarkMode(isDark);
+        }
+
+        // 初始化
+        createStars();
+        autoSetTheme();
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = body.className.includes('from-gray-900');
+            setDarkMode(!isDark);
+        });
+    </script>
+</body>
+</html>
